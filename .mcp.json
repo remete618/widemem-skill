@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "widemem": {
+      "command": "python",
+      "args": ["-m", "widemem.mcp_server"],
+      "env": {
+        "WIDEMEM_LLM_PROVIDER": "ollama",
+        "WIDEMEM_LLM_MODEL": "llama3.2",
+        "WIDEMEM_EMBEDDING_PROVIDER": "sentence-transformers"
+      }
+    }
+  }
+}
