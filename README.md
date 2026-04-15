@@ -228,6 +228,91 @@ widemem_search --> confidence: HIGH, similarity: 0.89
 - OpenAI API key (default) or Anthropic API key
 - For fully local operation (advanced): Ollama with an 8B+ model instead of an API key
 
+## Cost
+
+widemem uses an LLM for fact extraction and conflict resolution. Search is free (local embeddings).
+
+### What costs money
+
+| Operation | What happens | Cost (gpt-4o-mini) |
+|---|---|---|
+| `widemem_add` | LLM extracts facts, checks for conflicts | ~$0.0001 |
+| `widemem_pin` | Same as add, with elevated importance | ~$0.0001 |
+| `widemem_search` | Local embeddings only, no LLM call | **$0** |
+| `/mem reflect` | LLM analyzes exported memories for issues | ~$0.001 |
+
+### Monthly estimates
+
+| Usage level | Description | Monthly cost |
+|---|---|---|
+| **Light** | Casual coding, ~10 stores/day | ~$0.05 |
+| **Moderate** | Regular coding, ~20 stores/day, weekly reflect | ~$0.15 |
+| **Heavy** | All-day coding, ~50 stores/day, frequent reflects | ~$0.40 |
+| **Extreme** | 200 stores/day, 10+ hours/day | ~$1.50 |
+
+For context: a single Claude Code conversation with Opus costs more than a month of heavy widemem usage. The ceiling is low because gpt-4o-mini is $0.15/1M input tokens, each operation sends ~500 tokens, and search (the most frequent operation) is free.
+
+### Fully local (zero cost)
+
+With Ollama, everything runs on your machine. No API calls, no cost, no data leaves your laptop. The tradeoff: local models (especially 3B) are less reliable at fact extraction and conflict resolution. Use 8B+ for decent results. See "Bring Your Own LLM" below.
+
+## Bring Your Own LLM
+
+widemem separates the embedding model (for search) from the LLM (for fact extraction and conflict resolution). You can mix and match.
+
+### Tested configurations
+
+| LLM | Extraction quality | Conflict resolution | JSON reliability | Speed |
+|---|---|---|---|---|
+| **gpt-4o** | Best | Works (replaces old facts) | Perfect | 19s/6 facts |
+| **gpt-4o-mini** (default) | Good | Works (replaces old facts) | Perfect | 25s/6 facts |
+| **llama3 8B** (Ollama) | Good | Fails (keeps both old and new) | Good | 89s/6 facts |
+| **llama3.2 3B** (Ollama) | Poor (drops facts) | Fails | Unreliable (JSON errors) | 48s/4 facts |
+
+### How to switch
+
+Edit the `env` block in your `.mcp.json`:
+
+**OpenAI (default, recommended):**
+```json
+"WIDEMEM_LLM_PROVIDER": "openai",
+"WIDEMEM_LLM_MODEL": "gpt-4o-mini",
+"OPENAI_API_KEY": "sk-..."
+```
+
+**Anthropic:**
+```json
+"WIDEMEM_LLM_PROVIDER": "anthropic",
+"WIDEMEM_LLM_MODEL": "claude-haiku-4-5-20251001",
+"ANTHROPIC_API_KEY": "sk-ant-..."
+```
+
+**Ollama (local, free):**
+```json
+"WIDEMEM_LLM_PROVIDER": "ollama",
+"WIDEMEM_LLM_MODEL": "llama3"
+```
+Requires `ollama serve` running. Use `ollama pull llama3` first. Remove the API key line.
+
+### What the LLM does (and doesn't do)
+
+The LLM handles two jobs:
+1. **Fact extraction** -- turns "I work at Stripe as a backend engineer" into a clean fact with an importance score
+2. **Conflict resolution** -- decides whether a new fact contradicts, duplicates, or extends an existing memory
+
+The LLM does NOT handle search. Search uses the embedding model (sentence-transformers by default), which runs locally and is free. So even with a cloud LLM, your searches never leave your machine and never cost money.
+
+### Tuning confidence thresholds per embedding model
+
+The default thresholds (0.45/0.25/0.12) are calibrated for `sentence-transformers/all-MiniLM-L6-v2`. If you switch to OpenAI embeddings (`text-embedding-3-small`), scores run higher and you should raise the thresholds:
+
+| Embedding provider | HIGH | MODERATE | LOW |
+|---|---|---|---|
+| sentence-transformers (default) | 0.45 | 0.25 | 0.12 |
+| OpenAI embeddings | 0.65 | 0.45 | 0.25 |
+
+Set via `WIDEMEM_CONFIDENCE_HIGH`, `WIDEMEM_CONFIDENCE_MODERATE`, `WIDEMEM_CONFIDENCE_LOW` in `.mcp.json`.
+
 ## The Full SDK
 
 This skill is a taste of [widemem-ai](https://github.com/remete618/widemem-ai). The Python SDK can do more:
