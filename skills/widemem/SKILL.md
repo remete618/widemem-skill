@@ -24,6 +24,7 @@ When invoked as `/mem`, parse `$ARGUMENTS` to determine the subcommand:
 | `/mem stats` | Call `widemem_count` + `widemem_health`, show summary. |
 | `/mem prune` | Broad search, find duplicates/stale entries, report before deleting. |
 | `/mem export` | Export all memories as JSON via `widemem_export`. |
+| `/mem import` | Import from MEMORY.md into widemem. See below. |
 | `/mem reflect` | Full memory audit. See references/reflection-guide.md. |
 | `/mem <anything else>` | Treat as a search query. |
 
@@ -78,6 +79,21 @@ If the user says "I already told you this" or "you should know this":
 2. **Proactive retrieval**: Before answering personal questions, search widemem first.
 3. **Transparency**: Say "I recall you mentioned..." when using stored memories.
 4. **Respect deletion**: When asked to forget, delete and confirm.
+
+## Import from MEMORY.md
+
+When the user runs `/mem import`:
+
+1. Read the Claude memory index file at `~/.claude/projects/*/memory/MEMORY.md`
+2. For each entry, read the linked `.md` file to get the full content
+3. For each memory file:
+   - Extract the core facts from the content
+   - Run quality gates on each fact (most will be MEDIUM or higher)
+   - Store via `widemem_add`
+4. Report: how many files processed, how many facts stored, how many skipped (duplicates)
+5. Do NOT delete the original MEMORY.md files. The user can do that manually if they want.
+
+If no MEMORY.md is found at the expected path, ask the user to provide the path.
 
 ## References
 

@@ -5,14 +5,15 @@ A structured audit of all stored memories. Finds problems and proposes fixes. Al
 ## Workflow
 
 ### Step 1: Gather all memories
-- Call `widemem_count` to get total
-- Call `widemem_search` with broad queries across categories:
-  - "personal information" (top_k=20)
-  - "preferences and likes" (top_k=20)
-  - "work and projects" (top_k=20)
-  - "relationships and people" (top_k=20)
-  - "dates and events" (top_k=20)
-- Deduplicate results by memory ID
+- Call `widemem_export` to get the full memory set as JSON
+- Parse the exported JSON to get all memories with their IDs, content, importance, and timestamps (created_at, updated_at)
+- If export fails or returns empty, fall back to broad `widemem_search` queries:
+  - "personal information" (top_k=50)
+  - "preferences and likes" (top_k=50)
+  - "work and projects" (top_k=50)
+  - "relationships and people" (top_k=50)
+  - "dates and events" (top_k=50)
+  - Deduplicate results by memory ID
 
 ### Step 2: Analyze for issues
 Scan collected memories for:
