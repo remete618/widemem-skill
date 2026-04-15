@@ -1,7 +1,7 @@
 ---
 name: mem
 description: Persistent AI memory layer. Use when the user asks to remember something, recall past context, store facts, search memories, forget something, or manage long-term memory. Triggers on "do you remember", "I told you", "save this", "what do you know about me", "forget this", "memory stats", "export memories", or any /mem subcommand.
-argument-hint: [search|add|stats|prune|export|pin|reflect] [args...]
+argument-hint: [search|add|stats|export|import|pin|reflect] [args...]
 allowed-tools: mcp__widemem__widemem_add, mcp__widemem__widemem_search, mcp__widemem__widemem_delete, mcp__widemem__widemem_count, mcp__widemem__widemem_health, mcp__widemem__widemem_pin, mcp__widemem__widemem_export, Bash, Agent
 ---
 
@@ -22,7 +22,6 @@ When invoked as `/mem`, parse `$ARGUMENTS` to determine the subcommand:
 | `/mem add <text>` | Run quality gates, then store via `widemem_add`. |
 | `/mem pin <text>` | Pin critical fact with high importance via `widemem_pin`. |
 | `/mem stats` | Call `widemem_count` + `widemem_health`, show summary. |
-| `/mem prune` | Broad search, find duplicates/stale entries, report before deleting. |
 | `/mem export` | Export all memories as JSON via `widemem_export`. |
 | `/mem import` | Import from MEMORY.md into widemem. See below. |
 | `/mem reflect` | Full memory audit. See references/reflection-guide.md. |
@@ -40,16 +39,17 @@ Before every `widemem_add` call, evaluate the content:
    - CRITICAL: user said "remember this" / "don't forget" — use `widemem_pin`
 
 2. **If SKIP** — do not store, proceed silently.
-3. **If LOW+** — search widemem first (dedup check):
-   - Near-duplicate found (same fact) — skip, it's already stored
-   - Contradiction found (conflicting fact) — delete old, store new
-   - No match — store via `widemem_add`
+3. **If LOW** — skip unless user explicitly asks to store.
+4. **If MEDIUM+** — call `widemem_add` directly. The SDK handles deduplication and conflict resolution internally (LLM-based extraction, vector similarity check, and batch conflict resolution). Do NOT search before storing; that duplicates work the SDK already does.
+5. **If CRITICAL** — use `widemem_pin` instead of `widemem_add`.
+
+If `widemem_add` returns a `clarifications` field, surface it to the user for resolution.
 
 See references/quality-gates.md for detailed criteria and examples.
 
 ## Confidence Handling
 
-Search results include a confidence level. Respond accordingly:
+Search results include a `confidence` field returned by `widemem_search`. Use that field to determine your response style. Do not assess confidence yourself.
 
 | Confidence | Action |
 |------------|--------|
@@ -58,7 +58,7 @@ Search results include a confidence level. Respond accordingly:
 | **LOW** | Mention vague recollection, offer to search deeper |
 | **NONE** | Say you don't have it. Offer to save if user provides it. |
 
-**Never fabricate memories.** If confidence is LOW or NONE, say so.
+**Never fabricate memories.** If confidence is LOW or NONE, say so. If the returned memory content seems inconsistent with recent conversation context, note that even if confidence is HIGH.
 
 ## Frustration Detection
 
@@ -84,8 +84,10 @@ If the user says "I already told you this" or "you should know this":
 
 When the user runs `/mem import`:
 
-1. Read the Claude memory index file at `~/.claude/projects/*/memory/MEMORY.md`
-2. For each entry, read the linked `.md` file to get the full content
+1. Find the MEMORY.md file. Use Bash: `find ~/.claude/projects -name "MEMORY.md" -path "*/memory/*" 2>/dev/null`
+   - If multiple found, show the list and ask the user which to import
+   - If none found, ask the user for the path
+2. For each entry in the index, read the linked `.md` file to get the full content
 3. For each memory file:
    - Extract the core facts from the content
    - Run quality gates on each fact (most will be MEDIUM or higher)

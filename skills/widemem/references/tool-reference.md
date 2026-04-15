@@ -13,7 +13,7 @@ Returns memories ranked by similarity, importance, and recency. Includes confide
 - `query` (required, string): Natural language search query
 - `user_id` (optional, string): Filter to specific user
 - `top_k` (optional, int, default 5, max 100): Number of results
-- Returns: `{count, confidence, memories: [{id, content, importance, score}]}`
+- Returns: `{count, confidence, memories: [{id, content, importance, score, created_at}]}`
 
 ### `widemem_pin` — Pin critical facts
 Store with elevated importance (9.0). Use for facts the user explicitly wants remembered, corrections to forgotten info, or YMYL data.
@@ -67,7 +67,7 @@ Add to `.mcp.json` (project or `~/.claude/.mcp.json` for global):
 {
   "mcpServers": {
     "widemem": {
-      "command": "python",
+      "command": "python3",
       "args": ["-m", "widemem.mcp_server"],
       "env": {
         "WIDEMEM_LLM_PROVIDER": "ollama",
