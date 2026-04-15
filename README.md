@@ -68,21 +68,21 @@ cp -r widemem-skill/skills/widemem .claude/skills/
 cp widemem-skill/.mcp.json .mcp.json
 ```
 
-### 3. Configure (optional)
+### 3. Configure
 
-Edit `.mcp.json` to change providers:
+Add your OpenAI API key to `.mcp.json` (replace `your-key-here`). The default config uses `gpt-4o-mini` for fact extraction and conflict resolution (~$0.01/operation).
 
 | Env Variable | Default | Options |
 |---|---|---|
-| `WIDEMEM_LLM_PROVIDER` | `ollama` | `openai`, `anthropic`, `ollama` |
-| `WIDEMEM_LLM_MODEL` | `llama3.2` | Any model your provider supports |
+| `WIDEMEM_LLM_PROVIDER` | `openai` | `openai`, `anthropic`, `ollama` |
+| `WIDEMEM_LLM_MODEL` | `gpt-4o-mini` | Any model your provider supports |
 | `WIDEMEM_EMBEDDING_PROVIDER` | `sentence-transformers` | `openai`, `sentence-transformers` |
 | `WIDEMEM_DATA_PATH` | `~/.widemem/data` | Any local path |
-| `WIDEMEM_CONFIDENCE_HIGH` | `0.65` | Similarity threshold for HIGH confidence |
-| `WIDEMEM_CONFIDENCE_MODERATE` | `0.45` | Similarity threshold for MODERATE confidence |
-| `WIDEMEM_CONFIDENCE_LOW` | `0.25` | Similarity threshold for LOW confidence |
+| `WIDEMEM_CONFIDENCE_HIGH` | `0.45` | Similarity threshold for HIGH confidence |
+| `WIDEMEM_CONFIDENCE_MODERATE` | `0.25` | Similarity threshold for MODERATE confidence |
+| `WIDEMEM_CONFIDENCE_LOW` | `0.12` | Similarity threshold for LOW confidence |
 
-For cloud providers, set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` in the env block.
+**Local-only setup (advanced):** To run without an API key, set `WIDEMEM_LLM_PROVIDER=ollama` and `WIDEMEM_LLM_MODEL=llama3` (8B+ recommended). 3B models produce JSON errors and unreliable conflict resolution. Remove the `OPENAI_API_KEY` line.
 
 ## Commands
 
@@ -120,10 +120,10 @@ Every search tells you how sure it is:
 
 | Level | Similarity | What the AI says |
 |---|---|---|
-| **HIGH** | >= 0.65 | Answers confidently |
-| **MODERATE** | >= 0.45 | "I think so, but not 100% sure" |
-| **LOW** | >= 0.25 | "I have a vague recollection..." |
-| **NONE** | < 0.25 | "I don't have that stored." |
+| **HIGH** | >= 0.45 | Answers confidently |
+| **MODERATE** | >= 0.25 | "I think so, but not 100% sure" |
+| **LOW** | >= 0.12 | "I have a vague recollection..." |
+| **NONE** | < 0.12 | "I don't have that stored." |
 
 **The skill never makes up memories.** If confidence is NONE, it says so instead of guessing.
 
@@ -217,16 +217,16 @@ widemem_search --> confidence: HIGH, similarity: 0.89
 | Conflict resolution | LLM-based | No | No |
 | Memory pinning | Yes | No | No |
 | Self-reflection | `/mem reflect` | No | `/memory prune` |
-| Runs fully local | Ollama + FAISS | Requires Chroma + Bun | Filesystem |
+| Runs locally | Embeddings local, LLM cloud (or Ollama) | Requires Chroma + Bun | Filesystem |
 | Install | pip + skill | npm + plugin | curl |
 | Says "I don't know" | Yes (4 confidence levels) | Basic | No |
 
 ## Requirements
 
 - Python 3.10+
-- `widemem-ai[mcp]` (`pip install widemem-ai[mcp]`)
-- One of: Ollama (local, free), OpenAI API key, or Anthropic API key
-- For local embeddings (no API key needed): `pip install widemem-ai[sentence-transformers]`
+- `widemem-ai[mcp,sentence-transformers]` (`pip install widemem-ai[mcp,sentence-transformers]`)
+- OpenAI API key (default) or Anthropic API key
+- For fully local operation (advanced): Ollama with an 8B+ model instead of an API key
 
 ## The Full SDK
 
