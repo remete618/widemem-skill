@@ -15,7 +15,7 @@ Before storing any memory, evaluate whether it's worth persisting. This prevents
 - One-time context: "I'm debugging this function right now"
 - Temporary state: "I'm on the dev branch"
 
-### MEDIUM — Store after dedup check
+### MEDIUM — Store via widemem_add (SDK handles dedup)
 - Stated preferences: "I prefer TypeScript over JavaScript"
 - Personal facts: "I work at Google", "I have two dogs"
 - Project decisions: "We chose PostgreSQL for the database"
@@ -31,20 +31,19 @@ Before storing any memory, evaluate whether it's worth persisting. This prevents
 - Medical/financial/legal facts (YMYL)
 - Information the user was frustrated you didn't know
 
-## Deduplication Procedure
+## Deduplication and Conflict Resolution
 
-Before storing MEDIUM or higher:
-1. Search widemem with the core fact as query (top_k=3)
-2. If a result has very high similarity and same meaning — skip (already stored)
-3. If a result contradicts the new fact — check timestamps:
-   - The newer fact wins by default (user's most recent statement is the current truth)
-   - Delete the old memory, store the new one
-   - If both facts could be simultaneously true (e.g., user works at two places), ask before deleting
-4. If no relevant results — proceed with storage
+The SDK handles deduplication and conflict resolution internally when you call `widemem_add`. You do NOT need to search before storing. The SDK pipeline:
+1. Extracts facts from text via LLM
+2. Searches the vector store for existing similar memories
+3. Runs batch conflict resolution (LLM-based) to decide: ADD, UPDATE, or SKIP
+4. Content-hash checks prevent exact duplicates
+
+If the SDK detects ambiguous conflicts, it returns a `clarifications` field. Surface these to the user.
 
 ## Timestamp-Aware Conflict Resolution
 
-When a contradiction is found between an existing memory and new information:
+When a contradiction surfaces (during reflection, or via SDK clarifications):
 - The `created_at` field on each memory indicates when it was stored
 - Newer information from the user supersedes older stored facts
 - When deleting the outdated memory, log which memory was replaced and why
@@ -56,6 +55,6 @@ When a contradiction is found between an existing memory and new information:
 |-----------|---------------|--------|
 | "Thanks, that fixed it" | SKIP | Don't store |
 | "I'm working on the auth module" | LOW | Skip unless asked |
-| "I'm a data scientist at Stripe" | MEDIUM | Dedup check, then store |
-| "Actually I moved to Berlin last month" | HIGH | Search for old location, delete, store new |
+| "I'm a data scientist at Stripe" | MEDIUM | Store via `widemem_add` (SDK dedup) |
+| "Actually I moved to Berlin last month" | HIGH | Store via `widemem_add` (SDK resolves conflict) |
 | "Remember: my API key rotates every 90 days" | CRITICAL | Pin via widemem_pin |

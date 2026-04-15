@@ -22,20 +22,20 @@ Manual validation scenarios for the widemem skill. Each scenario describes a use
 | 7 | "I'm on the dev branch right now" | LOW, skip unless asked | Temporary state |
 | 8 | "I'm debugging the auth module" | LOW, skip unless asked | One-time context |
 
-### MEDIUM tier (store after dedup)
+### MEDIUM tier (store via widemem_add, SDK handles dedup)
 
 | # | User says | Expected | Why |
 |---|-----------|----------|-----|
-| 9 | "I work at Stripe" | MEDIUM, dedup check, store | Personal fact |
-| 10 | "I prefer TypeScript over JavaScript" | MEDIUM, dedup check, store | Stated preference |
-| 11 | "We chose PostgreSQL for the database" | MEDIUM, dedup check, store | Project decision |
-| 12 | "Alice is my manager" | MEDIUM, dedup check, store | Relationship |
+| 9 | "I work at Stripe" | MEDIUM, call widemem_add directly (no pre-search) | Personal fact |
+| 10 | "I prefer TypeScript over JavaScript" | MEDIUM, call widemem_add directly | Stated preference |
+| 11 | "We chose PostgreSQL for the database" | MEDIUM, call widemem_add directly | Project decision |
+| 12 | "Alice is my manager" | MEDIUM, call widemem_add directly | Relationship |
 
 ### HIGH tier (store immediately)
 
 | # | User says | Expected | Why |
 |---|-----------|----------|-----|
-| 13 | "No, my name is spelled with a K" | HIGH, delete old, store new | Correction |
+| 13 | "No, my name is spelled with a K" | HIGH, call widemem_add (SDK resolves conflict) | Correction |
 | 14 | User repeats "I live in Berlin" (second time) | HIGH, pin it | Repeated info |
 | 15 | "My deadline is April 30th" | HIGH, store | Important date |
 
@@ -50,20 +50,20 @@ Manual validation scenarios for the widemem skill. Each scenario describes a use
 
 | # | Scenario | Expected response style |
 |---|----------|------------------------|
-| 18 | Search returns similarity 0.85 | HIGH: answer confidently, "I recall you mentioned..." |
+| 18 | Search returns confidence: HIGH | HIGH: answer confidently, "I recall you mentioned..." (use the confidence field, don't assess yourself) |
 | 19 | Search returns similarity 0.55 | MODERATE: answer with caveat, "I think..." |
 | 20 | Search returns similarity 0.30 | LOW: "I have a vague recollection, but I'm not sure..." |
 | 21 | Search returns similarity 0.10 | NONE: "I don't have that stored. Want to tell me?" |
 | 22 | Search returns no results | NONE: never fabricate, offer to save |
 
-## Dedup and Conflict Tests
+## Dedup and Conflict Tests (handled by SDK)
 
 | # | Existing memory | User says | Expected |
 |---|----------------|-----------|----------|
-| 23 | "Works at Stripe" | "I work at Stripe" | Skip (near-duplicate) |
-| 24 | "Works at Stripe" | "I just joined Google" | Delete old, store new (contradiction, newer wins) |
-| 25 | "Lives in San Francisco" | "I moved to Berlin last month" | Delete old, store new (correction) |
-| 26 | "Works at Google" | "I also freelance for Acme" | Ask user (both could be true) |
+| 23 | "Works at Stripe" | "I work at Stripe" | SDK skips (near-duplicate via content hash) |
+| 24 | "Works at Stripe" | "I just joined Google" | SDK resolves conflict (LLM-based batch resolution) |
+| 25 | "Lives in San Francisco" | "I moved to Berlin last month" | SDK resolves conflict (update/replace) |
+| 26 | "Works at Google" | "I also freelance for Acme" | SDK may return clarification; if so, surface to user |
 
 ## Frustration Detection Tests
 
@@ -87,5 +87,7 @@ Manual validation scenarios for the widemem skill. Each scenario describes a use
 | 32 | `/mem reflect` with <100 memories | Export all, analyze full set, report findings |
 | 33 | Two memories: "Lives in SF" + "User's city is San Francisco" | Flag as duplicate, propose keeping one |
 | 34 | Two memories: "Works at Google" + "Works at Meta" | Flag as contradiction, ask which is current |
-| 35 | Memory: "Debugging auth module" from 3 weeks ago | Flag as potentially stale |
+| 35 | Memory: "Debugging auth module" (created_at: 3 weeks ago) | Flag as stale (temporal keyword "debugging" + older than 7 days) |
+| 37 | Memory: "I work at Stripe" (created_at: 4 months ago) | Flag as worth confirming (older than 90 days, no temporal keyword) |
+| 38 | Memory: "I'm on the dev branch" (created_at: 2 days ago) | Do NOT flag (temporal keyword but only 2 days old) |
 | 36 | "Likes Python" + "Uses mypy" + "Prefers typed code" | Flag as consolidation candidate |

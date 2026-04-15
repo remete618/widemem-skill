@@ -24,8 +24,10 @@ Example: "Lives in San Francisco" and "User's city is San Francisco"
 **Contradictions** — Memories that conflict with each other.
 Example: "Works at Google" and "Works at Meta" (unless one is dated/outdated)
 
-**Stale entries** — Memories referencing past states that may no longer be true.
-Example: "Currently debugging the auth module" (from weeks ago)
+**Stale entries** — Memories referencing past states that may no longer be true. Use timestamps and content to detect:
+- **Likely stale (flag):** Contains temporal language ("currently", "right now", "this week", "working on", "debugging") AND older than 7 days
+- **Worth confirming (flag):** Any memory older than 90 days, regardless of content
+- Example: "Currently debugging the auth module" (created_at: 3 weeks ago) = likely stale
 
 **Consolidation candidates** — Multiple small facts that could merge.
 Example: "Likes Python" + "Prefers typed languages" + "Uses mypy" could become "Python developer who prefers typed code with mypy"

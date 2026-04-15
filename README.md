@@ -14,7 +14,7 @@ Built on [widemem-ai](https://github.com/remete618/widemem-ai) — the open-sour
 |---|---|---|
 | Storage | Flat markdown | Vector embeddings (FAISS/Qdrant) |
 | Search | Grep / full context load | Semantic similarity |
-| Knows when it doesn't know | No | Yes — 4 confidence levels |
+| Knows when it doesn't know | Limited | Yes — 4 confidence levels |
 | Importance scoring | No | 1-10 with temporal decay |
 | Dedup / conflict detection | No | LLM-based |
 | Quality gates | No | 5-tier classification |
@@ -92,7 +92,6 @@ For cloud providers, set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` in the env bloc
 | `/mem add <text>` | Store a fact (with quality gates — not everything gets in) |
 | `/mem pin <text>` | Pin critical fact at importance 9.0 (allergies, API keys, things that matter) |
 | `/mem stats` | Memory count and health check |
-| `/mem prune` | Find duplicates and stale entries |
 | `/mem export` | Export all memories as JSON |
 | `/mem import` | Import facts from Claude's MEMORY.md into widemem |
 | `/mem reflect` | Full memory audit — find contradictions, duplicates, staleness |
@@ -109,7 +108,7 @@ widemem has quality gates. Every incoming fact gets classified before storage:
 |---|---|---|
 | **CRITICAL** | "Remember: I'm allergic to penicillin" | Pinned at importance 9.0 |
 | **HIGH** | "Actually I moved to Berlin" | Deletes old location, stores new |
-| **MEDIUM** | "I work at Stripe" | Dedup check, then store |
+| **MEDIUM** | "I work at Stripe" | SDK handles dedup, then store |
 | **LOW** | "I'm on the dev branch right now" | Stored only if you insist |
 | **SKIP** | "ok", "thanks", "run the tests" | Silently ignored |
 
@@ -163,10 +162,10 @@ The skill reads your MEMORY.md index, follows each linked file, extracts the fac
 You: "I work at Stripe as a data scientist"
      |
      v
-Quality Gate: MEDIUM (personal fact) --> dedup check --> no match --> store
+Quality Gate: MEDIUM (personal fact) --> call widemem_add
      |
      v
-widemem_add --> LLM extracts: "Works at Stripe as a data scientist" (importance: 7)
+widemem_add --> LLM extracts fact, dedup check, conflict resolution --> store (importance: 7)
      |
      v
 Stored in FAISS with embedding vector
@@ -212,7 +211,7 @@ widemem_search --> confidence: HIGH, similarity: 0.89
 |---------|---------|-----------|---------------------|
 | Semantic search | FAISS/Qdrant | Chroma | grep |
 | Confidence scoring | 4 levels | No | No |
-| Quality gates | 5 tiers | No | Some |
+| Quality gates | 5 tiers | Basic | Some |
 | Frustration detection | Yes | No | No |
 | YMYL protection | Yes | No | No |
 | Conflict resolution | LLM-based | No | No |
@@ -220,7 +219,7 @@ widemem_search --> confidence: HIGH, similarity: 0.89
 | Self-reflection | `/mem reflect` | No | `/memory prune` |
 | Runs fully local | Ollama + FAISS | Requires Chroma + Bun | Filesystem |
 | Install | pip + skill | npm + plugin | curl |
-| Says "I don't know" | Yes (4 confidence levels) | No | No |
+| Says "I don't know" | Yes (4 confidence levels) | Basic | No |
 
 ## Requirements
 
