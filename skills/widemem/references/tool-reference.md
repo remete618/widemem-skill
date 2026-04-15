@@ -39,16 +39,16 @@ Export as JSON array. Optionally filter by user.
 
 ## Confidence Thresholds
 
-Default thresholds (configurable via environment variables):
+Default thresholds (tuned for `sentence-transformers/all-MiniLM-L6-v2`, configurable via environment variables):
 
 | Level | Default | Env Variable | Meaning |
 |-------|---------|-------------|---------|
-| HIGH | >= 0.65 | `WIDEMEM_CONFIDENCE_HIGH` | Strong semantic match |
-| MODERATE | >= 0.45 | `WIDEMEM_CONFIDENCE_MODERATE` | Decent match, some uncertainty |
-| LOW | >= 0.25 | `WIDEMEM_CONFIDENCE_LOW` | Weak match, may be irrelevant |
+| HIGH | >= 0.45 | `WIDEMEM_CONFIDENCE_HIGH` | Strong semantic match |
+| MODERATE | >= 0.25 | `WIDEMEM_CONFIDENCE_MODERATE` | Decent match, some uncertainty |
+| LOW | >= 0.12 | `WIDEMEM_CONFIDENCE_LOW` | Weak match, may be irrelevant |
 | NONE | < lowest | — | No relevant results found |
 
-Optimal thresholds vary by embedding provider. `sentence-transformers` models tend to produce higher similarity scores than OpenAI embeddings. If you see too many false HIGH results, lower the thresholds. If you see too many NONE results on valid queries, raise them.
+These thresholds are calibrated for `all-MiniLM-L6-v2`, which produces scores in the 0.1-0.6 range for typical queries. If you switch to OpenAI embeddings, raise the thresholds (e.g., HIGH=0.65, MODERATE=0.45, LOW=0.25).
 
 ### Search response fields
 
@@ -70,16 +70,24 @@ Add to `.mcp.json` (project or `~/.claude/.mcp.json` for global):
       "command": "python3",
       "args": ["-m", "widemem.mcp_server"],
       "env": {
-        "WIDEMEM_LLM_PROVIDER": "ollama",
-        "WIDEMEM_LLM_MODEL": "llama3.2",
-        "WIDEMEM_EMBEDDING_PROVIDER": "sentence-transformers"
+        "WIDEMEM_LLM_PROVIDER": "openai",
+        "WIDEMEM_LLM_MODEL": "gpt-4o-mini",
+        "WIDEMEM_EMBEDDING_PROVIDER": "sentence-transformers",
+        "WIDEMEM_CONFIDENCE_HIGH": "0.45",
+        "WIDEMEM_CONFIDENCE_MODERATE": "0.25",
+        "WIDEMEM_CONFIDENCE_LOW": "0.12",
+        "OPENAI_API_KEY": "your-key-here"
       }
     }
   }
 }
 ```
 
-Install: `pip install widemem-ai[mcp]`
+Install: `pip install widemem-ai[mcp,sentence-transformers]`
 
-For OpenAI: set `WIDEMEM_LLM_PROVIDER=openai` and `OPENAI_API_KEY` env var.
-For Anthropic: set `WIDEMEM_LLM_PROVIDER=anthropic` and `ANTHROPIC_API_KEY`.
+**Local-only setup (advanced):** To run without an API key, use Ollama instead. Requires `ollama serve` running with a model pulled (8B+ recommended for reliable conflict resolution):
+```
+"WIDEMEM_LLM_PROVIDER": "ollama",
+"WIDEMEM_LLM_MODEL": "llama3",
+```
+Remove the `OPENAI_API_KEY` line. Note: 3B models (llama3.2) produce JSON errors and unreliable conflict resolution.
