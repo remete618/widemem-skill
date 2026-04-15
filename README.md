@@ -78,6 +78,9 @@ Edit `.mcp.json` to change providers:
 | `WIDEMEM_LLM_MODEL` | `llama3.2` | Any model your provider supports |
 | `WIDEMEM_EMBEDDING_PROVIDER` | `sentence-transformers` | `openai`, `sentence-transformers` |
 | `WIDEMEM_DATA_PATH` | `~/.widemem/data` | Any local path |
+| `WIDEMEM_CONFIDENCE_HIGH` | `0.65` | Similarity threshold for HIGH confidence |
+| `WIDEMEM_CONFIDENCE_MODERATE` | `0.45` | Similarity threshold for MODERATE confidence |
+| `WIDEMEM_CONFIDENCE_LOW` | `0.25` | Similarity threshold for LOW confidence |
 
 For cloud providers, set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` in the env block.
 
@@ -91,6 +94,7 @@ For cloud providers, set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` in the env bloc
 | `/mem stats` | Memory count and health check |
 | `/mem prune` | Find duplicates and stale entries |
 | `/mem export` | Export all memories as JSON |
+| `/mem import` | Import facts from Claude's MEMORY.md into widemem |
 | `/mem reflect` | Full memory audit — find contradictions, duplicates, staleness |
 
 Or just talk normally. The skill triggers on "remember this", "do you remember", "what do you know about me", and similar phrases.
@@ -142,6 +146,16 @@ The skill detects frustration, searches harder, and when you repeat the fact, pi
 - **Consolidation** — "Likes Python" + "Uses mypy" + "Prefers typed code" → merge
 
 Reports everything before touching anything. Nothing gets deleted without your say-so.
+
+## Migrating from MEMORY.md
+
+Already have facts in Claude's built-in memory? Import them:
+
+```
+/mem import
+```
+
+The skill reads your MEMORY.md index, follows each linked file, extracts the facts, runs quality gates, and stores them in widemem. Duplicates are skipped. Your original MEMORY.md files are not deleted.
 
 ## How It Works
 

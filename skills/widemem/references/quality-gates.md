@@ -36,8 +36,19 @@ Before storing any memory, evaluate whether it's worth persisting. This prevents
 Before storing MEDIUM or higher:
 1. Search widemem with the core fact as query (top_k=3)
 2. If a result has very high similarity and same meaning — skip (already stored)
-3. If a result contradicts the new fact — delete the old one, store the new one
+3. If a result contradicts the new fact — check timestamps:
+   - The newer fact wins by default (user's most recent statement is the current truth)
+   - Delete the old memory, store the new one
+   - If both facts could be simultaneously true (e.g., user works at two places), ask before deleting
 4. If no relevant results — proceed with storage
+
+## Timestamp-Aware Conflict Resolution
+
+When a contradiction is found between an existing memory and new information:
+- The `created_at` field on each memory indicates when it was stored
+- Newer information from the user supersedes older stored facts
+- When deleting the outdated memory, log which memory was replaced and why
+- If the user corrects a fact ("Actually, I moved to Berlin"), treat the correction as HIGH priority regardless of the old memory's importance score
 
 ## Examples
 

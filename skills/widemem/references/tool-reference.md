@@ -39,12 +39,25 @@ Export as JSON array. Optionally filter by user.
 
 ## Confidence Thresholds
 
-| Level | Similarity | Meaning |
-|-------|-----------|---------|
-| HIGH | >= 0.65 | Strong semantic match |
-| MODERATE | >= 0.45 | Decent match, some uncertainty |
-| LOW | >= 0.25 | Weak match, may be irrelevant |
-| NONE | < 0.25 | No relevant results found |
+Default thresholds (configurable via environment variables):
+
+| Level | Default | Env Variable | Meaning |
+|-------|---------|-------------|---------|
+| HIGH | >= 0.65 | `WIDEMEM_CONFIDENCE_HIGH` | Strong semantic match |
+| MODERATE | >= 0.45 | `WIDEMEM_CONFIDENCE_MODERATE` | Decent match, some uncertainty |
+| LOW | >= 0.25 | `WIDEMEM_CONFIDENCE_LOW` | Weak match, may be irrelevant |
+| NONE | < lowest | — | No relevant results found |
+
+Optimal thresholds vary by embedding provider. `sentence-transformers` models tend to produce higher similarity scores than OpenAI embeddings. If you see too many false HIGH results, lower the thresholds. If you see too many NONE results on valid queries, raise them.
+
+### Search response fields
+
+Each memory in search results includes:
+- `id` — UUID for deletion/reference
+- `content` — the stored fact text
+- `importance` — 1-10 importance score
+- `score` — combined similarity/importance/recency score
+- `created_at` — ISO timestamp of when the memory was stored (use for conflict resolution)
 
 ## Setup
 
